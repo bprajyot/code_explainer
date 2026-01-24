@@ -48,3 +48,5 @@ AI-powered tool for analyzing and explaining Python code.
 Files are stored locally in the `output/` directory:
 - `output/markdown/` - Markdown documentation
 - `output/pdf/` - HTML reports (can be printed to PDF)
+
+## ImportantThis project is currently under development, and some features are not yet complete.
