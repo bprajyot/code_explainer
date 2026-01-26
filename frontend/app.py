@@ -7,13 +7,10 @@ from components.tabs.imports import render_imports_tab
 from components.tabs.variables import render_variables_tab
 from components.tabs.functions import render_functions_tab
 from components.tabs.classes import render_classes_tab
-from components.tabs.diagrams import render_diagrams_tab
 from components.tabs.suggestions import render_suggestions_tab
 from components.tabs.errors import render_errors_tab
-from components.tabs.functions import render_functions_tab
 from utils.styling import get_custom_css
 
-# Page configuration
 st.set_page_config(
     page_title=Config.PAGE_TITLE,
     page_icon=Config.PAGE_ICON,
@@ -21,7 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Apply custom CSS
 st.markdown(get_custom_css(), unsafe_allow_html=True)
 
 def display_header():
@@ -31,12 +27,12 @@ def display_header():
         unsafe_allow_html=True
     )
     st.markdown(
-        '<div class="sub-header">AI-powered code analysis for junior developers</div>', 
+        '<div class="sub-header">AI-powered code analysis with professional PDF reports</div>', 
         unsafe_allow_html=True
     )
 
 def display_welcome_message():
-    """Display welcome message when no file is uploaded"""
+    """Display welcome message"""
     st.markdown("""
     ## 👋 Welcome to Python Code Explainer!
     
@@ -45,37 +41,23 @@ def display_welcome_message():
     
     ### ✨ What You'll Get:
     
-    1. **📋 Detailed Overview**
-       - High-level understanding of code purpose
-       - Architecture and design patterns
+    1. **📋 Detailed Overview** - Understanding of code purpose and architecture
+    2. **📦 Import Analysis** - Detailed explanation of each dependency
+    3. **📊 Variable Tracking** - Complete variable inventory and usage
+    4. **⚙️ Function Analysis** - Detailed logic explanations
+    5. **🏗️ Class Documentation** - Complete class structure with method details
+    6. **💡 AI Suggestions** - Performance and quality improvements
+    7. **⚠️ Error Detection** - Issues and warnings
+    8. **📄 Professional PDF Report** - Formal documentation ready for industry use
     
-    2. **📦 Import Analysis**
-       - Detailed explanation of each dependency
-       - Purpose and common use cases
-    
-    3. **📊 Variable Tracking**
-       - Complete variable inventory
-       - Usage tracking across the code
-    
-    4. **⚙️ Function Analysis**
-       - Detailed logic explanations
-       - Variable usage within functions
-    
-    5. **🏗️ Class Documentation**
-       - Complete class structure
-       - Design pattern analysis
-    
-    6. **📈 Visual Diagrams**
-       - Flowchart, sequence, class diagrams
-       - **Rendered, not just code!**
-    
-    7. **💡 AI Suggestions**
-       - Performance improvements
-       - Best practice guidance
-    
-    8. **📄 Professional Report**
-       - Formal technical documentation
-       - Downloadable PDF/HTML format
+    ### 📄 Professional Report Features:
+    - Executive summary with metrics
+    - Comprehensive function and class analysis
+    - Code quality assessment
+    - Improvement recommendations with examples
+    - Architecture diagrams
+    - Complete source code reference
+    - Print-ready format for meetings and documentation
     
     **Ready to start? Upload your Python file in the sidebar!**
     """)
@@ -88,7 +70,7 @@ def handle_analysis(uploaded_file):
     st.success(f"✅ File uploaded: **{filename}**")
     
     if st.button("🔍 Analyze Code", type="primary", use_container_width=True):
-        with st.spinner("🤖 Analyzing code... This may take 1-2 minutes."):
+        with st.spinner("🤖 Analyzing code and generating report... This may take 1-2 minutes."):
             api_client = APIClient(Config.API_BASE_URL)
             analysis = api_client.analyze_code(file_content, filename)
         
@@ -104,17 +86,31 @@ def display_analysis_results(analysis):
     """Display analysis results in tabs"""
     st.markdown("---")
     
-    # Create tabs
+    # PDF Download Button (Prominent)
+    if analysis.get('pdf_ready') and analysis.get('file_id'):
+        st.markdown("### 📄 Professional Report")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            pdf_url = f"{Config.API_BASE_URL}/api/download/pdf/{analysis['file_id']}"
+            st.link_button(
+                "📥 Download Complete PDF Report",
+                pdf_url,
+                use_container_width=True,
+                type="primary"
+            )
+            st.caption("Professional report with all analysis details, ready for documentation and meetings")
+    
+    st.markdown("---")
+    
+    # Create tabs (REMOVED Diagrams and Final Report)
     tabs = st.tabs([
         "📋 Overview",
         "📦 Imports",
         "📊 Variables",
         "⚙️ Functions",
         "🏗️ Classes",
-        "📈 Diagrams",
         "💡 Suggestions",
-        "⚠️ Errors",
-        "📄 Final Report"
+        "⚠️ Errors"
     ])
     
     with tabs[0]:
@@ -128,40 +124,27 @@ def display_analysis_results(analysis):
     
     with tabs[3]:
         render_functions_tab(analysis.get('functions', []))
-    
+
     with tabs[4]:
         render_classes_tab(analysis.get('classes', []))
-    
+
     with tabs[5]:
-        render_diagrams_tab(analysis.get('diagrams', {}))
-    
-    with tabs[6]:
         render_suggestions_tab(analysis.get('suggestions', []))
-    
-    with tabs[7]:
+
+    with tabs[6]:
         render_errors_tab(analysis.get('errors', []))
-    
-    with tabs[8]:
-        render_functions_tab(analysis)
 
 def main():
     """Main application entry point"""
-    # Display header
     display_header()
-    
-    # Render sidebar and get uploaded file
     uploaded_file = render_sidebar()
-    
-    # Handle file upload
     if uploaded_file is not None:
         handle_analysis(uploaded_file)
-    
-    # Display results if analysis exists in session state
+
     if 'analysis' in st.session_state:
         analysis = st.session_state['analysis']
         display_analysis_results(analysis)
     else:
-        # Display welcome message
         display_welcome_message()
 
 if __name__ == "__main__":
