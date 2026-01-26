@@ -29,6 +29,7 @@ class Class(BaseModel):
     docstring: Optional[str]
     line_number: int
     detailed_explanation: str = ""
+    method_explanations: str=""
 
 class Import(BaseModel):
     module: str
