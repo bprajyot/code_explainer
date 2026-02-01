@@ -39,29 +39,142 @@ Explain what this code does and its main purpose. Keep it concise (max 200 words
 
         return await self._call_ollama(prompt, timeout=self.short_timeout)
     
-    async def generate_detailed_overview(self, code: str, structure: Dict[str, Any]) -> str:
-        """Generate comprehensive overview for final report"""
-        logger.info("Generating detailed overview")
+    async def explain_imports_batch(self, imports: List[Import]) -> List[Import]:
+        """Explain all imports in ONE comprehensive call"""
+        logger.info(f"Explaining {len(imports)} imports in single batch")
         
-        # Shorter, more focused prompt to reduce timeout risk
-        prompt = f"""Provide a professional analysis of this Python code (max 400 words).
+        if not imports:
+            return imports
+        
+        # Create comprehensive prompt for ALL imports
+        imports_list = "\n".join([
+            f"{idx+1}. Module: {imp.module}\n   Imported: {', '.join(imp.names)}"
+            for idx, imp in enumerate(imports)
+        ])
+        
+        prompt = f"""Analyze these Python imports and provide detailed explanations for each.
 
-Code:
-{code[:1500]}...
+IMPORTS TO ANALYZE:
+{imports_list}
 
-Structure: {len(structure.get('functions', []))} functions, {len(structure.get('classes', []))} classes, {len(structure.get('imports', []))} imports
+For EACH import, provide a detailed explanation (3-4 sentences) covering:
+1. What the module/package does
+2. Why these specific items are imported
+3. Common use cases in Python development
+4. How it fits into typical Python applications
 
-Include:
-1. Primary purpose and functionality
-2. Key components and design
-3. Notable technical decisions
+Format your response EXACTLY as:
+IMPORT 1: [Detailed explanation here]
+IMPORT 2: [Detailed explanation here]
+etc.
 
-Be concise but comprehensive."""
+Keep each explanation detailed but concise (3-4 sentences)."""
 
         try:
-            return await self._call_ollama(prompt, timeout=self.long_timeout)
+            response = await self._call_ollama_with_limit(
+                prompt,
+                timeout=self.timeouts["long"],
+                model=self.models["balanced"]
+            )
+            
+            # Parse response
+            lines = response.strip().split('\n')
+            explanations = {}
+            current_import_idx = None
+            current_explanation = []
+            
+            for line in lines:
+                if line.startswith('IMPORT '):
+                    # Save previous explanation
+                    if current_import_idx is not None and current_explanation:
+                        explanations[current_import_idx] = ' '.join(current_explanation).strip()
+                    
+                    # Start new import
+                    parts = line.split(':', 1)
+                    if len(parts) == 2:
+                        import_num = parts[0].replace('IMPORT', '').strip()
+                        try:
+                            current_import_idx = int(import_num) - 1
+                            current_explanation = [parts[1].strip()]
+                        except:
+                            current_explanation.append(line)
+                elif current_import_idx is not None:
+                    current_explanation.append(line.strip())
+            
+            # Save last explanation
+            if current_import_idx is not None and current_explanation:
+                explanations[current_import_idx] = ' '.join(current_explanation).strip()
+            
+            # Assign explanations to imports
+            for idx, imp in enumerate(imports):
+                if idx in explanations:
+                    imp.purpose = explanations[idx]
+                else:
+                    # Fallback
+                    imp.purpose = f"The {imp.module} module provides {', '.join(imp.names)} for Python development. This is commonly used for its specialized functionality."
+            
+            logger.info(f"Successfully explained {len(explanations)} imports")
+            return imports
+            
         except Exception as e:
-            logger.warning(f"Detailed overview generation failed: {e}, using fallback")
+            logger.warning(f"Batch import explanation failed: {e}")
+            # Fallback: basic explanations
+            for imp in imports:
+                imp.purpose = f"The {imp.module} module provides {', '.join(imp.names)}. This module offers specialized functionality commonly used in Python applications."
+            return imports
+
+    async def generate_detailed_overview(self, code: str, structure: Dict[str, Any]) -> str:
+        """Generate comprehensive overview - MORE DETAILED"""
+        logger.info("Generating detailed overview")
+        
+        prompt = f"""Provide a comprehensive professional analysis of this Python code (500-600 words).
+
+CODE:
+{code[:2000]}...
+
+STRUCTURE:
+- Functions: {len(structure.get('functions', []))}
+- Classes: {len(structure.get('classes', []))}
+- Imports: {len(structure.get('imports', []))}
+- Total Lines: {len(code.split(chr(10)))}
+
+PROVIDE DETAILED ANALYSIS INCLUDING:
+
+1. PRIMARY PURPOSE (2-3 paragraphs):
+   - What is the main goal of this code?
+   - What problem does it solve?
+   - What domain/area does it address?
+
+2. ARCHITECTURE & DESIGN (2 paragraphs):
+   - How is the code organized?
+   - What design patterns are used (if any)?
+   - How do components interact?
+   - Is it procedural, OOP, or functional?
+
+3. KEY COMPONENTS (1-2 paragraphs):
+   - What are the critical functions/classes?
+   - How do they work together?
+   - What is the data flow?
+
+4. TECHNICAL DECISIONS (1 paragraph):
+   - Notable implementation choices
+   - Technology stack decisions
+   - Code organization strategy
+
+5. CODE QUALITY (1 paragraph):
+   - Overall structure assessment
+   - Maintainability considerations
+   - Any notable strengths or concerns
+
+Write in a formal, professional tone suitable for technical documentation."""
+
+        try:
+            return await self._call_ollama_with_limit(
+                prompt,
+                timeout=self.timeouts["long"],
+                model=self.models["quality"]
+            )
+        except:
             return self._generate_fallback_overview(code, structure)
     
     def _generate_fallback_overview(self, code: str, structure: Dict[str, Any]) -> str:

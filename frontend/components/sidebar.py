@@ -1,49 +1,48 @@
-# ==========================================
-# FRONTEND - frontend/components/sidebar.py
-# ==========================================
 import streamlit as st
 
 def render_sidebar():
-    """Render sidebar with upload and information"""
+    """Render professional sidebar"""
     with st.sidebar:
-        st.markdown("## 📁 Upload Code")
-        uploaded_file = st.file_uploader(
-            "Choose a Python file",
-            type=['py'],
-            help="Upload a .py file to analyze"
+        # --------------------------------------------------
+        # Upload Section
+        # --------------------------------------------------
+        st.markdown(
+            """
+            <div class="sidebar-section">
+                <h2 class="sidebar-title">📁 Upload File</h2>
+                <p class="sidebar-subtitle">
+                    Upload a Python (.py) file for analysis
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
-        
-        st.markdown("---")
-        st.markdown("## ℹ️ About")
-        st.info("""
-        **Python Code Explainer** provides:
-        - AI-powered code analysis
-        - Detailed function explanations
-        - Visual architecture diagrams
-        - Code quality suggestions
-        - Comprehensive reports
-        """)
-        
-        st.markdown("---")
-        st.markdown("### 🔧 Features")
-        st.markdown("""
-        - 📋 Detailed Overview
-        - 📦 Import Explanations
-        - 📊 Variable Tracking
-        - ⚙️ Function Analysis
-        - 🏗️ Class Documentation
-        - 📈 Visual Diagrams
-        - 💡 AI Suggestions
-        - 📄 PDF Reports
-        """)
-        
-        st.markdown("---")
-        st.markdown("### 💻 Tech Stack")
-        st.markdown("""
-        - **Backend:** FastAPI
-        - **AI:** Ollama DeepSeek
-        - **Frontend:** Streamlit
-        - **Storage:** Local Files
-        """)
-    
+
+        uploaded_file = st.file_uploader(
+            label="Python file upload",
+            type=["py"],
+            help="Upload a .py file for comprehensive analysis",
+            label_visibility="collapsed"
+        )
+
+        st.divider()
+
+        # --------------------------------------------------
+        # Features
+        # --------------------------------------------------
+        st.markdown(
+            """
+            <div class="sidebar-card">
+                <h3 class="sidebar-card-title">🔍 Analysis Capabilities</h3>
+                <ul class="sidebar-list">
+                    <li>Comprehensive code analysis</li>
+                    <li>AI-powered explanations & insights</li>
+                    <li>Code quality and risk assessment</li>
+                    <li>Professional PDF export</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
     return uploaded_file
